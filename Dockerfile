@@ -1,53 +1,23 @@
-# --- Stage 1: Build Backend ---
-FROM python:3.11-slim AS backend
-
-# Установим системные зависимости для Python и сборки
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    libffi-dev \
-    libssl-dev \
-    && rm -rf /var/lib/apt/lists/*
+# --- Stage 1: Base Python image ---
+FROM python:3.11-slim
 
 # Рабочая директория
 WORKDIR /app
 
-# Копируем зависимости
+# Копируем backend зависимости
 COPY backend/requirements.txt .
 
 # Устанавливаем зависимости
-RUN pip install --no-cache-dir -r requirements.txt \
-    && pip install --no-cache-dir "eventlet==0.31.1"
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Копируем весь backend
-COPY backend/ ./
+# Копируем backend код
+COPY backend/ ./backend/
 
-# --- Stage 2: Build Frontend ---
-FROM node:20 AS frontend
+# Копируем фронтенд как статические файлы
+COPY frontend/ ./static/
 
-WORKDIR /app/frontend
+# Устанавливаем рабочую директорию в backend
+WORKDIR /app/backend
 
-# Копируем фронтенд
-COPY frontend/ .
-
-# Устанавливаем зависимости и собираем
-RUN npm install --legacy-peer-deps && npm run build
-
-# --- Stage 3: Final Image ---
-FROM python:3.11-slim
-
-WORKDIR /app
-
-# Копируем backend
-COPY --from=backend /app /app
-
-# Копируем фронтенд сборку в static
-COPY --from=frontend /app/frontend/build /app/static
-
-# Устанавливаем Eventlet для Gunicorn
-RUN pip install --no-cache-dir "eventlet==0.31.1"
-
-# Открываем порт
-EXPOSE 5000
-
-# Команда запуска
-CMD ["gunicorn", "-b", "0.0.0.0:5000", "app:app", "-k", "eventlet", "--worker-connections", "1000"]
+# Команда запуска (Flask + SocketIO через eventlet)
+CMD ["gunicorn", "-k", "eventlet", "-w", "1", "app:app", "-b", "0.0.0.0:8000"]
