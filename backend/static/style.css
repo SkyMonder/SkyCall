@@ -1,0 +1,22 @@
+body { margin:0; font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background: #f3f4f6; color:#111827; }
+.app { display:flex; height:100vh; }
+.sidebar { width:300px; background:linear-gradient(180deg,#0ea5e9,#7dd3fc); color:white; padding:16px; box-sizing:border-box; }
+.profile { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+.profile button { background:rgba(255,255,255,0.15); border:0; padding:8px 10px; color:white; border-radius:8px; cursor:pointer; }
+.search input { width:100%; padding:8px; border-radius:8px; border:0; }
+.peers ul { list-style:none; padding:0; margin:8px 0; max-height:40vh; overflow:auto; }
+.peers li { background:rgba(255,255,255,0.08); margin:6px 0; padding:8px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; }
+.main { flex:1; padding:20px; box-sizing:border-box; display:flex; flex-direction:column; }
+.videoStage { flex:1; display:flex; justify-content:center; align-items:center; position:relative; background:#0f172a; border-radius:12px; }
+.videoStage .remote { width:70%; height:70%; object-fit:cover; border-radius:8px; background:black; }
+.videoStage .local { width:180px; height:120px; position:absolute; right:20px; bottom:20px; border-radius:8px; border:2px solid white; object-fit:cover; background:black; }
+.controls { margin-top:12px; display:flex; gap:8px; align-items:center; }
+.controls input { padding:8px; border-radius:8px; border:1px solid #ccc; }
+.controls button { padding:8px 12px; border-radius:8px; border:0; background:#111827; color:white; cursor:pointer; }
+.modal { position:fixed; inset:0; display:flex; justify-content:center; align-items:center; background:rgba(0,0,0,0.5); }
+.modal.hidden { display:none; }
+.modal-content { background:white; padding:20px; border-radius:10px; min-width:320px; text-align:center; }
+.loginBox { width:320px; margin:100px auto; padding:20px; background:white; border-radius:12px; box-shadow:0 8px 30px rgba(2,6,23,0.2); }
+.loginBox input { width:100%; padding:10px; margin:8px 0; border-radius:8px; border:1px solid #ddd; }
+.loginBox button { padding:8px 12px; border-radius:8px; border:0; background:#0ea5e9; color:white; cursor:pointer; margin-right:8px; }
+.msg { color:red; margin-top:8px; }
