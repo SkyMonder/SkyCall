@@ -4,26 +4,22 @@ from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
 import threading
-import time
 
-# Static folder points to frontend directory (relative to backend/)
-# If you moved frontend into backend/static, change to static_folder="static"
-app = Flask(__name__, static_folder="../frontend", static_url_path="/")
+# --- Flask App ---
+app = Flask(__name__, static_folder="frontend", static_url_path="/")
 CORS(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///sky.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-# ---------------- Models ----------------
+# --- Models ---
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
 
-# ---------------- In-memory signalling queues ----------------
-# message_queues: user_id -> [event, ...]
-# Each event is a dict: { "type": "...", "data": {...} }
+# --- In-memory signaling queues ---
 message_queues = {}
 queues_lock = threading.Lock()
 
@@ -43,13 +39,13 @@ def pop_events(user_id):
         message_queues[uid] = []
     return events
 
-# ---------------- Routes ----------------
+# --- Serve frontend ---
 @app.route("/", defaults={"path": "index.html"})
 @app.route("/<path:path>")
 def serve_frontend(path):
-    # serve static frontend files
     return send_from_directory(app.static_folder, path)
 
+# --- Auth ---
 @app.route('/api/register', methods=['POST'])
 def register():
     data = request.json or {}
@@ -57,7 +53,7 @@ def register():
     password = (data.get('password') or '').strip()
     if not username or not password:
         return jsonify({"ok": False, "error": "username and password required"}), 400
-    if User.query.filter_by(username=username).first():
+    if User.query.filter_by(username=username).limit(1).one_or_none():
         return jsonify({"ok": False, "error": "username exists"}), 400
     user = User(username=username, password_hash=generate_password_hash(password))
     db.session.add(user)
@@ -69,7 +65,7 @@ def login():
     data = request.json or {}
     username = (data.get('username') or '').strip()
     password = (data.get('password') or '').strip()
-    user = User.query.filter_by(username=username).first()
+    user = User.query.filter_by(username=username).limit(1).one_or_none()
     if not user or not check_password_hash(user.password_hash, password):
         return jsonify({"ok": False, "error": "invalid credentials"}), 401
     return jsonify({"ok": True, "user": {"id": user.id, "username": user.username}})
@@ -82,62 +78,44 @@ def search_users():
     users = User.query.filter(User.username.ilike(f"{q}%")).limit(20).all()
     return jsonify({"ok": True, "users": [{"id": u.id, "username": u.username} for u in users]})
 
-# ---------------- Signalling REST endpoints ----------------
-# Caller posts offer to start a call
-# body: { fromUserId, toUserId, offerSDP, name }
+# --- Call signaling ---
 @app.route('/api/call/start', methods=['POST'])
 def api_call_start():
     data = request.json or {}
-    from_id = data.get('fromUserId')
-    to_id = data.get('toUserId')
-    offer = data.get('offerSDP')
-    name = data.get('name', '')
+    from_id, to_id, offer, name = data.get('fromUserId'), data.get('toUserId'), data.get('offerSDP'), data.get('name', '')
     if not from_id or not to_id or not offer:
         return jsonify({"ok": False, "error": "missing fields"}), 400
-    # push incomingCall event to callee
     push_event(to_id, {"type": "incomingCall", "data": {"fromUserId": str(from_id), "offerSDP": offer, "name": name}})
     return jsonify({"ok": True})
 
-# Callee posts answer
-# body: { fromUserId (callee), toUserId (caller), answerSDP }
 @app.route('/api/call/answer', methods=['POST'])
 def api_call_answer():
     data = request.json or {}
-    from_id = data.get('fromUserId')
-    to_id = data.get('toUserId')
-    answer = data.get('answerSDP')
+    from_id, to_id, answer = data.get('fromUserId'), data.get('toUserId'), data.get('answerSDP')
     if not from_id or not to_id or not answer:
         return jsonify({"ok": False, "error": "missing fields"}), 400
     push_event(to_id, {"type": "callAccepted", "data": {"fromUserId": str(from_id), "answerSDP": answer}})
     return jsonify({"ok": True})
 
-# ICE candidate relay
-# body: { fromUserId, toUserId, candidate }
 @app.route('/api/call/candidate', methods=['POST'])
 def api_call_candidate():
     data = request.json or {}
-    from_id = data.get('fromUserId')
-    to_id = data.get('toUserId')
-    candidate = data.get('candidate')
+    from_id, to_id, candidate = data.get('fromUserId'), data.get('toUserId'), data.get('candidate')
     if not from_id or not to_id or not candidate:
         return jsonify({"ok": False, "error": "missing fields"}), 400
     push_event(to_id, {"type": "iceCandidate", "data": {"fromUserId": str(from_id), "candidate": candidate}})
     return jsonify({"ok": True})
 
-# End call
-# body: { fromUserId, toUserId }
 @app.route('/api/call/end', methods=['POST'])
 def api_call_end():
     data = request.json or {}
-    from_id = data.get('fromUserId')
-    to_id = data.get('toUserId')
+    from_id, to_id = data.get('fromUserId'), data.get('toUserId')
     if not from_id or not to_id:
         return jsonify({"ok": False, "error": "missing fields"}), 400
     push_event(to_id, {"type": "callEnded", "data": {"fromUserId": str(from_id)}})
     return jsonify({"ok": True})
 
-# Polling endpoint
-# GET /api/poll?userId=123
+# --- Polling endpoint ---
 @app.route('/api/poll')
 def api_poll():
     user_id = request.args.get('userId')
@@ -146,11 +124,9 @@ def api_poll():
     events = pop_events(user_id)
     return jsonify({"ok": True, "events": events})
 
-# ---------------- Run / DB init ----------------
+# --- Run ---
 if __name__ == '__main__':
-    # Ensure DB and tables exist when app launches
     with app.app_context():
         db.create_all()
     port = int(os.environ.get('PORT', 5000))
-    # Use Flask built-in server with threaded=True for simple runs (Render uses gunicorn)
     app.run(host='0.0.0.0', port=port, threaded=True)
