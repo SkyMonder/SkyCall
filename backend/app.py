@@ -24,6 +24,12 @@ connected_sockets = {}  # user_id -> sid
 sid_to_user = {}        # sid -> user_id
 
 # ---------------- API ----------------
+@app.route("/", defaults={"path": "index.html"})
+
+@app.route("/<path:path>")
+def serve_frontend(path):
+    return send_from_directory(app.static_folder, path)
+    
 @app.route('/api/register', methods=['POST'])
 def register():
     data = request.json or {}
@@ -118,4 +124,5 @@ if __name__ == '__main__':
         db.create_all()
     port = int(os.environ.get('PORT', 5000))
     socketio.run(app, host='0.0.0.0', port=port)
+
 
