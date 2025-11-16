@@ -1,34 +1,22 @@
-# Используем Python 3.11 slim
+# Используем стабильный Python 3.11
 FROM python:3.11-slim
 
-# Устанавливаем зависимости системы
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
-# Рабочая директория
+# Устанавливаем рабочую директорию
 WORKDIR /app
 
-# Копируем backend requirements
+# Копируем backend
+COPY backend/ ./backend/
 COPY backend/requirements.txt .
 
-# Обновляем pip и ставим зависимости
-RUN pip install --upgrade pip
-RUN pip install --no-cache-dir -r requirements.txt
+# Устанавливаем зависимости Python
+RUN pip install --no-cache-dir -r requirements.txt \
+    && pip install --no-cache-dir eventlet>=0.24.1
 
-# Копируем backend
-COPY backend/ ./
+# Копируем фронтенд как статические файлы
+COPY frontend/ ./static/
 
-# Копируем frontend и билдим его в папку static
-COPY frontend/ ./frontend/
-RUN apt-get update && apt-get install -y nodejs npm && \
-    cd frontend && npm install && npm run build && \
-    mkdir -p ../static && cp -r build/* ../static && \
-    cd .. && rm -rf frontend && apt-get remove -y nodejs npm && apt-get autoremove -y
-
-# Экспортируем порт
+# Указываем порт
 EXPOSE 5000
 
-# Запуск через Gunicorn с eventlet
-CMD ["gunicorn", "-w", "1", "-k", "eventlet", "-b", "0.0.0.0:5000", "app:app"]
+# Запуск приложения с eventlet
+CMD ["gunicorn", "-b", "0.0.0.0:5000", "backend.app:app", "-k", "eventlet", "--worker-connections", "1000"]
