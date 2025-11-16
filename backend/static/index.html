@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>SkyCall — Video Calls</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="profile">
+      <div id="meName">Not logged</div>
+      <button id="logoutBtn">Logout</button>
+    </div>
+    <div class="search">
+      <input id="searchInput" placeholder="Search user by login..." />
+      <div id="searchResults"></div>
+    </div>
+    <div class="actions">
+      <button id="createGroupBtn">Create Group Call</button>
+    </div>
+    <div class="peers">
+      <h4>Online users</h4>
+      <ul id="onlineList"></ul>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="videoStage">
+      <video id="remoteVideo" autoplay playsinline class="remote"></video>
+      <video id="localVideo" autoplay muted playsinline class="local"></video>
+    </div>
+
+    <div class="controls">
+      <input id="callTarget" placeholder="User ID to call (or search)" />
+      <input id="myName" placeholder="Your display name" />
+      <button id="callBtn">Call</button>
+      <button id="endCallBtn" disabled>End Call</button>
+      <button id="toggleMicBtn" disabled>Mute Mic</button>
+      <button id="toggleCamBtn" disabled>Turn Off Camera</button>
+    </div>
+  </main>
+</div>
+
+<!-- Incoming call modal -->
+<div id="incomingModal" class="modal hidden">
+  <div class="modal-content">
+    <h3>Incoming call from <span id="incomingName"></span></h3>
+    <button id="acceptBtn">Accept</button>
+    <button id="rejectBtn">Reject</button>
+  </div>
+</div>
+
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script src="call.js"></script>
+</body>
+</html>
