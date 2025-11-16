@@ -6,7 +6,7 @@ import os
 import threading
 
 # --- Flask App ---
-app = Flask(__name__, static_folder="frontend", static_url_path="/")
+app = Flask(__name__, static_folder="static", static_url_path="/")
 CORS(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///sky.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -130,3 +130,4 @@ if __name__ == '__main__':
         db.create_all()
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, threaded=True)
+
