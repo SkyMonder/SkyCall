@@ -1,39 +1,18 @@
-<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>SkyCall — Login</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="style.css" />
-</head>
-<body>
-<div class="loginBox">
-  <h2>SkyCall</h2>
-  <div>
-    <input id="username" placeholder="username" />
-  </div>
-  <div>
-    <input id="password" type="password" placeholder="password" />
-  </div>
-  <div class="actions">
-    <button id="loginBtn">Login</button>
-    <button id="registerBtn">Register</button>
-  </div>
-  <div id="msg" class="msg"></div>
-</div>
-
+<!-- only the <script> part shown — replace the current script in login.html with this -->
 <script>
 const api = (path, opts) => fetch('/api/' + path, opts);
+
+async function safeJson(resp) {
+  const text = await resp.text();
+  try { return JSON.parse(text); }
+  catch(e) { return { ok: false, error: 'invalid server response' }; }
+}
 
 document.getElementById('registerBtn').onclick = async () => {
   const username = document.getElementById('username').value.trim();
   const password = document.getElementById('password').value.trim();
-  const res = await api('register', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({username, password})
-  });
-  const data = await res.json();
+  const res = await api('register', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({username, password})});
+  const data = await safeJson(res);
   if (data.ok) {
     localStorage.setItem('user', JSON.stringify(data.user));
     location.href = '/index.html';
@@ -45,12 +24,8 @@ document.getElementById('registerBtn').onclick = async () => {
 document.getElementById('loginBtn').onclick = async () => {
   const username = document.getElementById('username').value.trim();
   const password = document.getElementById('password').value.trim();
-  const res = await api('login', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({username, password})
-  });
-  const data = await res.json();
+  const res = await api('login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({username, password})});
+  const data = await safeJson(res);
   if (data.ok) {
     localStorage.setItem('user', JSON.stringify(data.user));
     location.href = '/index.html';
@@ -59,5 +34,3 @@ document.getElementById('loginBtn').onclick = async () => {
   }
 };
 </script>
-</body>
-</html>
